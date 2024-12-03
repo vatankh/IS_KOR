@@ -25,7 +25,85 @@
 - `Report` — отчеты.
 
 Каждая таблица была спроектирована с учетом требований целостности данных: определены первичные ключи, внешние ключи, ограничения, а также создан ряд триггеров для автоматизации процессов.
+```sql
+-- Table: Book
+CREATE TABLE Book (
+    book_id SERIAL PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    genre_id INT REFERENCES Genre(genre_id),
+    status ENUM('available', 'issued'),
+    publication_year YEAR
+);
 
+-- Table: Member
+CREATE TABLE Member (
+    member_id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    phone VARCHAR(20),
+    email VARCHAR(255) UNIQUE
+);
+
+-- Table: Librarian
+CREATE TABLE Librarian (
+    librarian_id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    role ENUM('librarian', 'admin')
+);
+
+-- Table: Transaction
+CREATE TABLE Transaction (
+    transaction_id SERIAL PRIMARY KEY,
+    book_id INT REFERENCES Book(book_id),
+    member_id INT REFERENCES Member(member_id),
+    librarian_id INT REFERENCES Librarian(librarian_id),
+    issue_date DATE NOT NULL,
+    return_date DATE,
+    fine DECIMAL(10, 2) DEFAULT 0
+);
+
+-- Table: Genre
+CREATE TABLE Genre (
+    genre_id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL
+);
+
+-- Table: Author
+CREATE TABLE Author (
+    author_id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL
+);
+
+-- Table: Book_Author (Many-to-Many)
+CREATE TABLE Book_Author (
+    book_id INT REFERENCES Book(book_id) ON DELETE CASCADE,
+    author_id INT REFERENCES Author(author_id) ON DELETE CASCADE,
+    PRIMARY KEY (book_id, author_id)
+);
+
+-- Table: Reservation
+CREATE TABLE Reservation (
+    reservation_id SERIAL PRIMARY KEY,
+    book_id INT REFERENCES Book(book_id),
+    member_id INT REFERENCES Member(member_id),
+    reservation_date DATE NOT NULL
+);
+
+-- Table: Fine
+CREATE TABLE Fine (
+    fine_id SERIAL PRIMARY KEY,
+    member_id INT REFERENCES Member(member_id),
+    amount DECIMAL(10, 2) NOT NULL CHECK (amount >= 0),
+    description TEXT
+);
+
+-- Table: Report
+CREATE TABLE Report (
+    report_id SERIAL PRIMARY KEY,
+    type VARCHAR(255) NOT NULL,
+    generated_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    data TEXT
+);
+```
 ---
 
 ## 3. Обеспечение целостности данных
