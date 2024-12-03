@@ -110,10 +110,69 @@ CREATE TABLE Report (
 
 Для обеспечения целостности данных реализованы следующие триггеры:
 1. **Обновление статуса книги при выдаче** — триггер `trigger_update_book_status_on_issue` обновляет статус книги на `issued`.
-2. **Обновление статуса книги при возврате** — триггер `trigger_update_book_status_on_return` возвращает статус книги на `available`.
-3. **Удаление бронирования при выдаче книги** — триггер `trigger_delete_reservation_on_issue` удаляет запись о бронировании, если книга была выдана.
-4. **Проверка доступности книги** — триггер `trigger_check_book_availability` запрещает выдачу книги, если она уже выдана.
+```sql
+CREATE OR REPLACE FUNCTION update_book_status_on_issue()
+RETURNS TRIGGER AS $$
+BEGIN
+    UPDATE Book SET status = 'issued' WHERE book_id = NEW.book_id;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
 
+CREATE TRIGGER trigger_update_book_status_on_issue
+AFTER INSERT ON Transaction
+FOR EACH ROW
+EXECUTE FUNCTION update_book_status_on_issue();
+```
+2. **Обновление статуса книги при возврате** — триггер `trigger_update_book_status_on_return` возвращает статус книги на `available`.
+```sql
+CREATE OR REPLACE FUNCTION update_book_status_on_return()
+RETURNS TRIGGER AS $$
+BEGIN
+    UPDATE Book SET status = 'available' WHERE book_id = NEW.book_id;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_update_book_status_on_return
+AFTER UPDATE ON Transaction
+FOR EACH ROW
+WHEN (NEW.return_date IS NOT NULL AND OLD.return_date IS NULL)
+EXECUTE FUNCTION update_book_status_on_return();
+```
+3. **Удаление бронирования при выдаче книги** — триггер `trigger_delete_reservation_on_issue` удаляет запись о бронировании, если книга была выдана.
+```sql
+CREATE OR REPLACE FUNCTION delete_reservation_on_issue()
+RETURNS TRIGGER AS $$
+BEGIN
+    DELETE FROM Reservation WHERE book_id = NEW.book_id AND member_id = NEW.member_id;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_delete_reservation_on_issue
+AFTER INSERT ON Transaction
+FOR EACH ROW
+EXECUTE FUNCTION delete_reservation_on_issue();
+
+```
+6. **Проверка доступности книги** — триггер `trigger_check_book_availability` запрещает выдачу книги, если она уже выдана.
+```sql
+CREATE OR REPLACE FUNCTION check_book_availability()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF (SELECT status FROM Book WHERE book_id = NEW.book_id) = 'issued' THEN
+        RAISE EXCEPTION 'Book is already issued.';
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_check_book_availability
+BEFORE INSERT ON Transaction
+FOR EACH ROW
+EXECUTE FUNCTION check_book_availability();
+```
 ---
 
 ## 4. Скрипты для управления базой данных
