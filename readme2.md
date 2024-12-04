@@ -321,11 +321,8 @@ $$ LANGUAGE plpgsql;
    - `idx_book_title` — для ускорения поиска книг по названию.
    - `idx_book_status` — для фильтрации книг по статусу.
 
-2. **Индексы для таблицы `Transaction`:**
-   - `idx_transaction_book_id` — для поиска транзакций по книге.
-   - `idx_transaction_member_id` — для поиска транзакций по члену библиотеки.
 
-3. **Индексы для таблицы `Member`:**
+2. **Индексы для таблицы `Member`:**
    - `idx_member_name` — для быстрого поиска членов по имени.
 
 ```
@@ -333,9 +330,6 @@ $$ LANGUAGE plpgsql;
 CREATE INDEX idx_book_title ON Book(title);
 CREATE INDEX idx_book_status ON Book(status);
 
--- Optimize Transactions
-CREATE INDEX idx_transaction_book_id ON Transaction(book_id);
-CREATE INDEX idx_transaction_member_id ON Transaction(member_id);
 
 -- Optimize Member Search
 CREATE INDEX idx_member_name ON Member(name);
